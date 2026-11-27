@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Pomidor Cam</string>
+    <string name="nav_monitor">Монитор</string>
+    <string name="nav_journal">Журнал</string>
+    <string name="nav_pc_bridge">ПК-мост</string>
+    <string name="nav_settings">Настройки</string>
+    <string name="notification_channel_name">Фоновый мониторинг Pomidor Cam</string>
+    <string name="notification_channel_desc">Тихий индикатор работы камеры для определения присутствия</string>
+    <string name="notification_title_idle">Pomidor Cam: ожидание человека</string>
+    <string name="notification_title_focus">Pomidor Cam: фокус активен</string>
+    <string name="notification_title_break">Pomidor Cam: перерыв</string>
+    <string name="camera_permission_rationale">Для отслеживания присутствия каждые 10 секунд необходим доступ к камере.</string>
+    <string name="notification_permission_rationale">На Android 13+ разрешение на тихое уведомление нужно для стабильной работы сервиса при выключенном экране.</string>
+</resources>

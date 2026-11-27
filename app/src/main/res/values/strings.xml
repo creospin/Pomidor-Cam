@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Pomidor Cam</string>
+    <string name="nav_monitor">Monitor</string>
+    <string name="nav_journal">Journal</string>
+    <string name="nav_pc_bridge">PC Bridge</string>
+    <string name="nav_settings">Settings</string>
+    <string name="notification_channel_name">Pomidor Cam Background Monitor</string>
+    <string name="notification_channel_desc">Silent camera presence monitor indicator</string>
+    <string name="notification_title_idle">Pomidor Cam: waiting for person</string>
+    <string name="notification_title_focus">Pomidor Cam: focus active</string>
+    <string name="notification_title_break">Pomidor Cam: break time</string>
+    <string name="camera_permission_rationale">Camera access is required to check presence every few seconds.</string>
+    <string name="notification_permission_rationale">On Android 13+, notification permission keeps the background monitor alive with the screen off.</string>
+</resources>

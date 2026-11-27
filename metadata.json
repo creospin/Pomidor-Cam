@@ -1,0 +1,6 @@
+{
+  "name": "Pomidor Cam",
+  "description": "Background AI Pomodoro timer using camera presence detection (YOLO26), flashlight blink alerts, workday journal, and Ubuntu/Windows fullscreen break overlay.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
