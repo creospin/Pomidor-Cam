@@ -844,7 +844,8 @@ private fun CameraTelemetryCard(
                         if (state.isServiceRunning) {
                             DetectionOverlay(
                                 boxes = state.lastBoxes,
-                                mirrorHorizontal = settings.cameraLens == CameraLensOption.FRONT,
+                                mirrorHorizontal = !state.isDirectCamera2Active &&
+                                    settings.cameraLens == CameraLensOption.FRONT,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

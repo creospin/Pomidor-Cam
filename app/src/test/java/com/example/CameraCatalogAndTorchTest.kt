@@ -1,7 +1,9 @@
 package com.example
 
+import android.view.Surface
 import com.example.data.CameraLensOption
 import com.example.hardware.CameraCatalog
+import com.example.hardware.CameraRotationHelper
 import com.example.hardware.DeviceCameraOption
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -97,5 +99,20 @@ class CameraCatalogAndTorchTest {
         val level100 = (1.0 + ((100 - 10) / 90.0) * (maxLevel - 1)).roundToInt().coerceIn(1, maxLevel)
         assertEquals(1, level10)
         assertEquals(45, level100)
+    }
+
+    @Test
+    fun rotationHelper_computesUprightAnglesAcrossAllFourOrientations() {
+        // Rear / ultrawide camera (sensor 90 deg)
+        assertEquals(90, CameraRotationHelper.computeUprightRotationDegrees(90, false, Surface.ROTATION_0))
+        assertEquals(0, CameraRotationHelper.computeUprightRotationDegrees(90, false, Surface.ROTATION_90))
+        assertEquals(270, CameraRotationHelper.computeUprightRotationDegrees(90, false, Surface.ROTATION_180))
+        assertEquals(180, CameraRotationHelper.computeUprightRotationDegrees(90, false, Surface.ROTATION_270))
+
+        // Front camera (sensor 270 deg)
+        assertEquals(270, CameraRotationHelper.computeUprightRotationDegrees(270, true, Surface.ROTATION_0))
+        assertEquals(0, CameraRotationHelper.computeUprightRotationDegrees(270, true, Surface.ROTATION_90))
+        assertEquals(90, CameraRotationHelper.computeUprightRotationDegrees(270, true, Surface.ROTATION_180))
+        assertEquals(180, CameraRotationHelper.computeUprightRotationDegrees(270, true, Surface.ROTATION_270))
     }
 }

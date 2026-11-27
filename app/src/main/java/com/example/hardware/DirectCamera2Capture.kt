@@ -52,6 +52,9 @@ class DirectCamera2Capture(
     @Volatile
     private var lastPreviewElapsedMs: Long = 0L
 
+    @Volatile
+    private var lastCapturedDisplayRotation: Int = -1
+
     private var sensorOrientationDeg: Int = 90
     private var isFrontFacing: Boolean = false
     private var hasFlash: Boolean = false
@@ -92,8 +95,10 @@ class DirectCamera2Capture(
             }
 
             val now = SystemClock.elapsedRealtime()
+            val displayRotation = CameraRotationHelper.getDisplayRotation(context)
+            val rotationChanged = displayRotation != lastCapturedDisplayRotation
             val dueForDetection = now >= nextDetectionElapsedMs
-            val dueForPreview = !dueForDetection && (now - lastPreviewElapsedMs >= 1500L)
+            val dueForPreview = !dueForDetection && (rotationChanged || (now - lastPreviewElapsedMs >= 1500L))
 
             if ((!dueForDetection && !dueForPreview) || !isBusyProcessing.compareAndSet(false, true)) {
                 image.close()
@@ -105,8 +110,9 @@ class DirectCamera2Capture(
             } else {
                 lastPreviewElapsedMs = now
             }
+            lastCapturedDisplayRotation = displayRotation
 
-            val bitmap = runCatching { imageToUprightBitmap(image) }.getOrNull()
+            val bitmap = runCatching { imageToUprightBitmap(image, displayRotation) }.getOrNull()
             image.close()
 
             if (bitmap == null) {
@@ -242,7 +248,7 @@ class DirectCamera2Capture(
         handler = null
     }
 
-    private fun imageToUprightBitmap(image: Image): Bitmap {
+    private fun imageToUprightBitmap(image: Image, displayRotation: Int): Bitmap {
         val nv21 = yuv420ToNv21(image)
         val yuv = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
         val baos = ByteArrayOutputStream()
@@ -251,7 +257,11 @@ class DirectCamera2Capture(
         val raw = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size)
             ?: error("JPEG decode failed")
 
-        val rotation = sensorOrientationDeg
+        val rotation = CameraRotationHelper.computeUprightRotationDegrees(
+            sensorOrientationDeg = sensorOrientationDeg,
+            isFrontFacing = isFrontFacing,
+            surfaceRotation = displayRotation
+        )
         if (rotation == 0 && !isFrontFacing) return raw
         val matrix = Matrix().apply {
             if (rotation != 0) postRotate(rotation.toFloat())

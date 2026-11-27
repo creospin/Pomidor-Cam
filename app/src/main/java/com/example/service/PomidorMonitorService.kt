@@ -8,10 +8,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
+import android.hardware.display.DisplayManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
 import android.util.Size
+import android.view.Display
+import android.view.Surface
 import androidx.annotation.OptIn
 import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
@@ -35,6 +40,7 @@ import com.example.data.SessionRepository
 import com.example.data.SettingsRepository
 import com.example.data.WorkdayClock
 import com.example.hardware.CameraCatalog
+import com.example.hardware.CameraRotationHelper
 import com.example.hardware.DeviceCameraOption
 import com.example.hardware.DirectCamera2Capture
 import com.example.hardware.TorchController
@@ -97,9 +103,12 @@ class PomidorMonitorService : LifecycleService() {
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var boundCamera: Camera? = null
+    private var boundPreview: Preview? = null
+    private var boundImageAnalysis: ImageAnalysis? = null
     private var directCamera2: DirectCamera2Capture? = null
     private var analysisExecutor: ExecutorService? = null
     private var tickerJob: Job? = null
+    private var previewRebindJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
     @Volatile
@@ -114,8 +123,25 @@ class PomidorMonitorService : LifecycleService() {
     @Volatile
     private var boundPreviewAttached: Boolean = false
 
+    @Volatile
+    private var lastDisplayRotation: Int = Surface.ROTATION_0
+
     private var lastNotificationPhase: SessionPhase? = null
     private var lastAutoExportCheckElapsedMs: Long = 0L
+
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) = Unit
+        override fun onDisplayRemoved(displayId: Int) = Unit
+        override fun onDisplayChanged(displayId: Int) {
+            if (displayId != Display.DEFAULT_DISPLAY) return
+            val rotation = CameraRotationHelper.getDisplayRotation(applicationContext)
+            if (rotation != lastDisplayRotation) {
+                lastDisplayRotation = rotation
+                boundPreview?.targetRotation = rotation
+                boundImageAnalysis?.targetRotation = rotation
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -128,9 +154,14 @@ class PomidorMonitorService : LifecycleService() {
 
         createSilentNotificationChannel()
         acquireWakeLock()
+        lastDisplayRotation = CameraRotationHelper.getDisplayRotation(applicationContext)
+        (getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager)
+            ?.registerDisplayListener(displayListener, Handler(Looper.getMainLooper()))
 
         MonitorStateHolder.onPreviewSurfaceChanged = { provider ->
-            lifecycleScope.launch(Dispatchers.Main) {
+            previewRebindJob?.cancel()
+            previewRebindJob = lifecycleScope.launch(Dispatchers.Main) {
+                delay(60L)
                 if (MonitorStateHolder.state.value.isServiceRunning && directCamera2 == null) {
                     bindCameraUseCases(forceRebind = provider != null || boundPreviewAttached)
                 }
@@ -344,6 +375,8 @@ class PomidorMonitorService : LifecycleService() {
         directCamera2 = null
         runCatching { cameraProvider?.unbindAll() }
         boundCamera = null
+        boundPreview = null
+        boundImageAnalysis = null
     }
 
     private fun bindCameraUseCases(forceRebind: Boolean = false) {
@@ -394,8 +427,12 @@ class PomidorMonitorService : LifecycleService() {
                 )
                 .build()
 
+            val targetRotation = CameraRotationHelper.getDisplayRotation(applicationContext)
+            lastDisplayRotation = targetRotation
+
             val imageAnalysis = ImageAnalysis.Builder()
                 .setResolutionSelector(resolutionSelector)
+                .setTargetRotation(targetRotation)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
 
@@ -431,12 +468,16 @@ class PomidorMonitorService : LifecycleService() {
                 val cam = if (surfaceProvider != null) {
                     val preview = Preview.Builder()
                         .setResolutionSelector(resolutionSelector)
+                        .setTargetRotation(targetRotation)
                         .build()
                         .apply { setSurfaceProvider(surfaceProvider) }
+                    boundPreview = preview
                     provider.bindToLifecycle(this, selector, preview, imageAnalysis)
                 } else {
+                    boundPreview = null
                     provider.bindToLifecycle(this, selector, imageAnalysis)
                 }
+                boundImageAnalysis = imageAnalysis
                 if (targetZoomRatio != null) {
                     val minSupported = cam.cameraInfo.zoomState.value?.minZoomRatio ?: 1.0f
                     cam.cameraControl.setZoomRatio(maxOf(targetZoomRatio, minSupported))
@@ -722,6 +763,11 @@ class PomidorMonitorService : LifecycleService() {
 
     override fun onDestroy() {
         MonitorStateHolder.onPreviewSurfaceChanged = null
+        previewRebindJob?.cancel()
+        runCatching {
+            (getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager)
+                ?.unregisterDisplayListener(displayListener)
+        }
         tickerJob?.cancel()
         releaseAllCameras()
         analysisExecutor?.shutdown()
