@@ -84,7 +84,7 @@ python pomidor_pc_overlay.py --port 8765
 
 ## Сборка Android-приложения
 
-- **Требования:** JDK 17+, Android SDK (Compile SDK 36, Min SDK 26), Gradle.
+- **Требования:** JDK 17+, Android SDK (Compile SDK 36.1, Min SDK 24), Gradle.
 - **Стек:** Kotlin, Jetpack Compose (Material 3), CameraX + Camera2, Room, DataStore, WorkManager, ONNX Runtime Android, LiteRT/TFLite, ML Kit Object Detection.
 
 ```bash

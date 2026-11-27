@@ -84,7 +84,7 @@ In the app's **PC Bridge** tab, enter your PC's local IP (e.g., `192.168.1.100`)
 
 ## Building the Android App
 
-- **Requirements:** JDK 17+, Android SDK (Compile SDK 36, Min SDK 26), Gradle.
+- **Requirements:** JDK 17+, Android SDK (Compile SDK 36.1, Min SDK 24), Gradle.
 - **Tech Stack:** Kotlin, Jetpack Compose (Material 3), CameraX + Camera2, Room, DataStore, WorkManager, ONNX Runtime Android, LiteRT/TFLite, ML Kit Object Detection.
 
 ```bash
